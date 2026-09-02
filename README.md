@@ -1,7 +1,7 @@
 # Jeepney Game Theory Model
 
 Game-theoretic evaluation of the Legazpi-Daraga Local Public Transport Route Plan (LPTRP).
-NSTF 2026 · MCS Category · Grade 11 STEM
+NSTF 2026 · MCS Category · 
 
 ## What it does
 
