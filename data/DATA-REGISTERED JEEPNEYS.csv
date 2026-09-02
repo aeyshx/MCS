@@ -1,0 +1,46 @@
+ROUTE,STRUCTURE,SIZE
+Diretso,"(Re-route A) Daraga - Rizal St. - Lapu-Lapu St, - Quezon Avenue - Peñaranda
+St, - Ramon Santos St. - Quezon avenue - Rizal St (Trilon), - F. Imperial St. -
+Los Baños avenue - F. Imperial St. B. Imperial St. - F. Aquende Dr. - Gov
+Locsin St. - Rosario St. - Rizal St. - Daraga",246
+,"(Route B) Daraga - Rizal St. - Rivera St. - Gov. Locsin St. - F. Aquende Dr. -
+B. Imperial Dr. - F. Imperial St. - Los Baños Avenue - F. Imperial St. - Rizal St.
+- Lapu-Lapu St. - Quezon Avenue - Peñaranda St. - Ramon Santos St. -
+Quezon Avenue - Rizal St. (Trilon) - Daraga.",
+Rawis A,"Daraga to Rawis (Rizal Street); Daraga - Rizal Street - Lapu-Lapu Street -
+Quezon Avenue Extension - Embarcadero and Governor Forbes Street -
+Santos Street - Peñaranda Street - Peñaranda Extension - Rawis.
+
+Rawis to Daraga ; Rawis - Peñaranda Street - Ramon Santos Street - Quezon
+Avenue - Los Baños Avenue - F. Imperial Street - Barriada Road - Lakandula
+Drive - F. Aquende Drive - Vinzon Street - Rizal Street - Daraga.
+(viaAlternateRoad) Rawis - Peñaranda Street - Ramon Santos Street -
+Quezon Avenue - Los Baños Avenue - F. Imperial Street - BS Imperial Street -
+Terminal Road 1 - Road 2 - Imelda C. Roces Avenue - BS Imperial Street - F.
+Aquende Drive – Street - Rizal Street - Daraga.",76
+Rawis B,"Rawis to Daraga
+Rawis - Peñaranda Street - Ramon Street - Quezon Avenue - Los Banos
+Avenue Extension - Rizal Street - Daraga.
+
+Daraga to Rawis; Daraga - Rizal Street - Vinzon Street - F. Aquende Drive -
+Lakandula Drive; - Barriada Road - BS Imperial Street - F. Imperial Street -
+Landco Business Park - F. Imperial Street - Los Baños Avenue - Rosal Street -
+Rizal Street - Lapu-Lapu Street - Quezon Avenue Extension - Embarcadero
+and Gov. Forbes Street - Ramon Santos Street - Peñaranda Street -
+Peñaranda Street Extension - Rawis.
+Daraga to Rawis (via Alternate Road)
+Daraga - Rizal Street - Vinzon Street - F. Aquende Drive - BS Imperial Street -
+Imelda C. Roces Avenue - Terminal Road 2 - Terminal Road 1 - BS Imperial
+Street - F. Imperial Street - Landco Business Park - Los Baños Avenue - Rosal
+Street - Imperial Court Phase II - Rizal Street - Lapu-Lapu Street -Quezon
+Avenue Extension - Embarcadero and Gov. Forbes Street - Ramon Santos
+Street - Peñaranda Street - Peñaranda Street Extension - Rawis.",91
+Loop 1,"Daraga- Rizal Street - Lapu-Lapu Street - Quezon Avenue Extension -
+Peñaranda Street - Bonot-Bogtong Road - Daraga.",32
+Loop  2,"Daraga - Bonot-Bogtong Road - Peñaranda Extension - Ramon Santos Street
+- Quezon Avenue - Rizal - Daraga.",32
+Arimbay ,"Daraga - Rizal Street - Vinzon Street - F. Aquende Drive - Lakandula Drive -
+Tahao Road - Terminal Road 2 - Landco Business Park - F. Imperial Street -
+Los Baños Avenue - Rosal Street - Rizal Street - Lapu-Lapu Street - Quezon
+Avenue Extension - Embarcadero and Gov. Forbes Street - Ramon Santos
+Street - Peñaranda Street - Peñaranda Street Extension - Rawis – Arimbay",106

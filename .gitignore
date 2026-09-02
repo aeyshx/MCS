@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Data (large / sensitive)
+data/raw/*.csv
+data/raw/*.xlsx
+data/processed/*.csv
+data/network/*.graphml
+
+# Reproducible OSMnx cache
+cache/
+*.graphml
+
+# Local environment configuration
+.env
+*.env
+
+# Generated output (keep folder structure, ignore generated files)
+output/figures/*.png
+output/figures/*.pdf
+output/figures/*.svg
+output/maps/*.png
+output/maps/*.html
+output/tables/*.csv
+output/reports/*.txt
+!output/**/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+#Research Paper
+STF_MCS_Proposal_Legazpi_Daraga_Game_Theory.md
+Option_H_Implementation_Handbook.md

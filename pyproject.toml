@@ -1,0 +1,38 @@
+﻿[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "jeepney-game"
+version = "0.1.0"
+description = "Game-theoretic evaluation of the Legazpi-Daraga LPTRP"
+requires-python = ">=3.11"
+dependencies = [
+    "networkx>=3.2",
+    "osmnx>=1.9",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.1",
+    "geopandas>=0.14",
+    "matplotlib>=3.8",
+    "folium>=0.15",
+    "shapely>=2.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true

@@ -1,0 +1,23 @@
+{
+  "route_assignments": {
+    "DIRETSO A": 36,
+    "DIRETSO B": 37,
+    "RAWIS A":   24,
+    "RAWIS B":   24,
+    "ARIMBAY":   37,
+    "LOOP 1":    15,
+    "LOOP 2":    15,
+    "EXTERNAL":  0
+  },
+  "notes": {
+    "source": "DATA-LPTRP.csv - DOTC authorized franchise seats (FS column)",
+    "DIRETSO A": "LPTRP route 11 - via Lapu-Lapu St, 12.2 km",
+    "DIRETSO B": "LPTRP route 12 - via Capitol, 12.9 km",
+    "RAWIS A":   "LPTRP route 13 - Daraga-Rawis A, 22.28 km",
+    "RAWIS B":   "LPTRP route 14 - Daraga-Rawis B, 21.2 km",
+    "ARIMBAY":   "LPTRP route 15 - via Tahao Rd, 11.64 km",
+    "LOOP 1":    "LPTRP route 16-1 - Loop Service 1, 12.77 km",
+    "LOOP 2":    "LPTRP route 16-2 - Loop Service 2, 13.0 km",
+    "EXTERNAL":  "Long-distance routes (Camalig, Guinobatan, etc.) - not modeled"
+  }
+}
