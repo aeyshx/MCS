@@ -82,9 +82,11 @@ Open Jupyter Lab from the repository root:
 jupyter lab
 ```
 
-- `01_explore_field_data.ipynb` checks source data, normalization, and demand.
-- `02_run_and_interpret_model.ipynb` runs a lightweight model execution and
-  reads the generated research tables.
+- `01_network.ipynb` checks route geometry and map inputs.
+- `02_demand.ipynb` audits source surveys, normalization, and the demand tensor.
+- `03_equilibrium.ipynb` connects the game mechanics to allocation diagnostics.
+- `04_results.ipynb` runs and interprets the official research pipeline.
+- `05_visualization.ipynb` reviews presentation-ready output assets.
 
 ## Citation
 

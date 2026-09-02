@@ -1,5 +1,7 @@
 """Regression tests for the project-level workflow contracts."""
 
+import json
+
 from generate_mock_data import write_mock_survey
 from src.config import MODEL_ROUTES, NODES, ROUTES, WINDOWS
 from src.data_parser import build_boarding_counts
@@ -30,3 +32,19 @@ def test_project_paths_are_root_relative():
     assert paths.data == paths.root / "data"
     assert paths.processed_data == paths.data / "processed" / "boarding_counts.csv"
     assert paths.lptrp_profile == paths.reference_data / "lptrp.json"
+
+
+def test_notebooks_follow_the_documented_learning_sequence():
+    notebook_dir = ProjectPaths.discover().root / "notebooks"
+    expected = [
+        "01_network.ipynb",
+        "02_demand.ipynb",
+        "03_equilibrium.ipynb",
+        "04_results.ipynb",
+        "05_visualization.ipynb",
+    ]
+    assert [path.name for path in sorted(notebook_dir.glob("[0-9][0-9]_*.ipynb"))] == expected
+    for filename in expected:
+        notebook = json.loads((notebook_dir / filename).read_text(encoding="utf-8"))
+        assert notebook["nbformat"] == 4
+        assert notebook["cells"]
