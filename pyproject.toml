@@ -1,6 +1,6 @@
-﻿[build-system]
+[build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "jeepney-game"
@@ -19,8 +19,20 @@ dependencies = [
     "shapely>=2.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.optional-dependencies]
+dev = [
+    "coverage>=7.6",
+    "jupyterlab>=4.0",
+    "pytest>=7.4",
+    "ruff>=0.1",
+]
+
+[project.scripts]
+jeepney-game = "run_pipeline:main"
+
+[tool.setuptools]
+packages = ["src"]
+py-modules = ["run_pipeline"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

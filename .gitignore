@@ -16,6 +16,7 @@ env/
 # Data (large / sensitive)
 data/raw/*.csv
 data/raw/*.xlsx
+data/mock/*.csv
 data/processed/*.csv
 data/network/*.graphml
 

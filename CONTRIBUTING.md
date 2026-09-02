@@ -2,7 +2,7 @@
 
 ## Raw survey files
 
-Store digitized field-survey files as `DATA-*.csv`. Each observation section is separated by a blank row and has this structure:
+Store digitized field-survey files as `data/raw/DATA-*.csv`. Each observation section is separated by a blank row and has this structure:
 
 1. Node name
 2. Observation date (for example, `August 14, 2026`)
@@ -24,4 +24,4 @@ The parser creates `data/processed/boarding_counts.csv` with:
 date,node,window,route,passengers_boarding,obs_duration_min
 ```
 
-Do not hand-edit generated output. Correct the raw survey file, rerun the pipeline, and retain the original source file for auditability.
+Do not hand-edit generated output. Correct the raw survey file, rerun the pipeline, and retain the original source file for auditability. The parser uses the exact canonical ordering recorded in `src/config.py`; update that source of truth, the tests, and this guide together when adding a model category.

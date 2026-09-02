@@ -1,31 +1,7 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-# Canonical node and route names matching the real field-survey data.
-# These must be kept in sync with src/data_parser.py.
-NODES = [
-    'ROTUNDA',       # 0 – Ayala / Rotunda area
-    'PACIFIC MALL',  # 1
-    'DARAGA MARKET', # 2
-    'EMBARCADERO',   # 3
-    'SM',            # 4
-]
-
-ROUTES = [
-    'DIRETSO A',  # 0 – LPTRP route 11 (via Lapu-Lapu St)
-    'DIRETSO B',  # 1 – LPTRP route 12 (via Capitol)
-    'RAWIS A',    # 2 – LPTRP route 13
-    'RAWIS B',    # 3 – LPTRP route 14
-    'ARIMBAY',    # 4 – LPTRP route 15 (via Tahao Rd)
-    'LOOP 1',     # 5 – LPTRP route 16-1
-    'LOOP 2',     # 6 – LPTRP route 16-2
-    'EXTERNAL',   # 7 – Long-distance (Camalig, Guinobatan, Ligao, etc.)
-]
-
-WINDOWS = ['AM', 'MID', 'PM']
-
-# Duration of each observation window in minutes (used to scale boarding rates)
-WINDOW_DURATION_MIN = {'AM': 120, 'MID': 120, 'PM': 120}
+from .config import NODES, ROUTES, WINDOWS, WINDOW_DURATION_MIN
 
 
 def load_field_sheets(csv_path='data/processed/boarding_counts.csv'):

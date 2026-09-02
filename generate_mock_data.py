@@ -1,67 +1,61 @@
-import json
-import random
+"""Create a small, canonical survey dataset for pipeline demonstrations.
+
+The generated file is kept out of ``data/raw`` so it cannot be mistaken for
+field data. Use it with ``GAME_THEORY_RAW_DIR=data/mock``.
+"""
+
+from __future__ import annotations
+
+import argparse
 import csv
-import os
+import random
+from pathlib import Path
 
-# Ensure directories exist
-os.makedirs('data/processed', exist_ok=True)
-os.makedirs('data', exist_ok=True)
+from src.config import NODES, ROUTES, WINDOWS
 
-NODES = ['PacificMall', 'RizalQuezon', 'DaragaMarket', 'Embarcadero', 'LGCT']
-WINDOWS = ['AM', 'MID', 'PM']
-ROUTES = ['DL', 'AL', 'DRA', 'DRB', 'L1', 'L2', 'CL', 'GL']
-DATES = ['2026-08-01', '2026-08-02', '2026-08-03']
 
-print("Generating mock boarding_counts.csv...")
-with open('data/processed/boarding_counts.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(['date', 'node', 'window', 'route', 'passengers_boarding', 'obs_duration_min'])
-    for d in DATES:
-        for node in NODES:
-            for w in WINDOWS:
-                for r in ROUTES:
-                    # Random passenger count between 5 and 50
-                    pax = random.randint(5, 50)
-                    writer.writerow([d, node, w, r, pax, 60])
-
-print("Generating mock routes.geojson...")
-features = []
-for idx, r in enumerate(ROUTES):
-    # Just a small line segment around Legazpi center (13.14, 123.73)
-    offset = idx * 0.005
-    feature = {
-        "type": "Feature",
-        "properties": {
-            "route_code": r,
-            "route_name": f"Mock Route {r}"
-        },
-        "geometry": {
-            "type": "LineString",
-            "coordinates": [
-                [123.73 + offset, 13.14 + offset],
-                [123.74 + offset, 13.15 + offset]
-            ]
-        }
-    }
-    features.append(feature)
-
-geojson = {
-    "type": "FeatureCollection",
-    "features": features
+WINDOW_LABELS = {
+    "AM": "6:00 AM - 8:00 AM",
+    "MID": "11:00 AM - 1:00 PM",
+    "PM": "4:00 PM - 6:00 PM",
 }
 
-with open('data/routes.geojson', 'w') as f:
-    json.dump(geojson, f, indent=2)
 
-# Also generate a mock LPTRP plan
-print("Generating mock lptrp.json...")
-lptrp = {
-    "route_assignments": {
-        "DL": 10, "AL": 10, "DRA": 10, "DRB": 10,
-        "L1": 10, "L2": 10, "CL": 10, "GL": 10
-    }
-}
-with open('data/lptrp.json', 'w') as f:
-    json.dump(lptrp, f, indent=2)
+def write_mock_survey(output_directory: Path, seed: int = 42) -> Path:
+    """Write deterministic, parser-compatible observations and return the file."""
+    output_directory.mkdir(parents=True, exist_ok=True)
+    output_path = output_directory / "DATA-MOCK.csv"
+    random_source = random.Random(seed)
+    dates = ("August 1, 2026", "August 2, 2026", "August 3, 2026")
 
-print("Mock data generated successfully!")
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        for date in dates:
+            for node in NODES:
+                for window in WINDOWS:
+                    writer.writerows(
+                        [
+                            [node],
+                            [date],
+                            [WINDOW_LABELS[window]],
+                            ["Time", "Jeepney Route", "Stopped", "Passengers", "Fullness", "Waiting"],
+                        ]
+                    )
+                    for route in ROUTES:
+                        writer.writerow(["08:00", route, "Y", random_source.randint(5, 50), "", ""])
+                    writer.writerow([])
+
+    return output_path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output-dir", type=Path, default=Path("data/mock"))
+    parser.add_argument("--seed", type=int, default=42)
+    arguments = parser.parse_args()
+    output = write_mock_survey(arguments.output_dir, arguments.seed)
+    print(f"Mock field-survey file written to {output}")
+
+
+if __name__ == "__main__":
+    main()

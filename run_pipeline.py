@@ -17,10 +17,14 @@ from src.analysis import (
 )
 from src.data_parser import build_boarding_counts
 from src.demand import NODES, ROUTES, bootstrap_demand, build_demand_tensor, load_field_sheets
+from src.config import DEFAULT_ALPHA, DEFAULT_DRIVER_COUNT, DEFAULT_ROUTE_INFO
 from src.equilibrium import find_equilibrium, find_equilibrium_multistart
 from src.lptrp import load_lptrp_profile
 from src.network import build_road_graph, load_routes
+from src.paths import ProjectPaths
 from src.visualize import (
+    MODEL_ROUTE_INDICES,
+    MODEL_ROUTES,
     plot_bottleneck,
     plot_convergence,
     plot_demand_by_node,
@@ -37,33 +41,18 @@ from src.visualize import (
     plot_welfare_comparison,
 )
 
-ROOT = Path(__file__).resolve().parent
-RAW_DATA_DIR = Path(os.environ.get("GAME_THEORY_RAW_DIR", ROOT / "data"))
-PROCESSED_DATA_PATH = ROOT / "data" / "processed" / "boarding_counts.csv"
-OUT_FIGURES = ROOT / "output" / "figures"
-OUT_MAPS = ROOT / "output" / "maps"
-OUT_TABLES = ROOT / "output" / "tables"
-OUT_REPORTS = ROOT / "output" / "reports"
-
-ROUTE_INFO = {
-    "length_km": [12.2, 12.9, 22.28, 21.2, 11.64, 12.77, 13.0, 30.0],
-    "cycle_time_min": [59, 62, 107, 102, 56, 61, 62, 144],
-    "served_nodes": [
-        [0, 1, 2, 3],
-        [0, 1, 2, 3],
-        [0, 1, 2, 3, 4],
-        [0, 1, 2, 3, 4],
-        [1, 4],
-        [0, 2],
-        [0, 2],
-        [],
-    ],
-}
+PATHS = ProjectPaths.discover()
+RAW_DATA_DIR = Path(os.environ["GAME_THEORY_RAW_DIR"]) if "GAME_THEORY_RAW_DIR" in os.environ else PATHS.raw_data
+PROCESSED_DATA_PATH = PATHS.processed_data
+OUT_FIGURES = PATHS.figures
+OUT_MAPS = PATHS.maps
+OUT_TABLES = PATHS.tables
+OUT_REPORTS = PATHS.reports
+ROUTE_INFO = DEFAULT_ROUTE_INFO
 
 
 def _make_output_directories():
-    for directory in (OUT_FIGURES, OUT_MAPS, OUT_TABLES, OUT_REPORTS):
-        directory.mkdir(parents=True, exist_ok=True)
+    PATHS.ensure_output_directories()
 
 
 def _save_figure(fig):
@@ -162,21 +151,29 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
         )
     demand = build_demand_tensor(field_data)
 
-    n_drivers = 188
-    lptrp_profile = load_lptrp_profile(ROOT / "data" / "lptrp.json", n_drivers)
+    n_drivers = DEFAULT_DRIVER_COUNT
+    lptrp_profile = load_lptrp_profile(PATHS.lptrp_profile, n_drivers)
     print("Step 2 – Finding Nash equilibrium and social optimum")
-    results = run_full_analysis(demand, ROUTE_INFO, n_drivers, lptrp_profile, alpha=0.7)
+    results = run_full_analysis(demand, ROUTE_INFO, n_drivers, lptrp_profile, alpha=DEFAULT_ALPHA)
 
     print("Step 3 – Computing bottlenecks, confidence intervals, and sensitivity")
     bottlenecks = bottleneck_analysis(demand, ROUTE_INFO, n_drivers, results["nash_profile"])
-    sorted_bottlenecks = sorted(bottlenecks.items(), key=lambda item: item[1], reverse=True)
+    sorted_bottlenecks = sorted(
+        (
+            (route_index, value)
+            for route_index, value in bottlenecks.items()
+            if route_index in MODEL_ROUTE_INDICES
+        ),
+        key=lambda item: item[1],
+        reverse=True,
+    )
 
     if bootstrap_samples > 0:
         try:
             D_samples = bootstrap_demand(field_data, n_bootstrap=bootstrap_samples, seed=42)
             bootstrap_poa = []
             for sample in D_samples:
-                bootstrap_result = run_full_analysis(sample, ROUTE_INFO, n_drivers, lptrp_profile, alpha=0.7)
+                bootstrap_result = run_full_analysis(sample, ROUTE_INFO, n_drivers, lptrp_profile, alpha=DEFAULT_ALPHA)
                 bootstrap_poa.append(bootstrap_result["price_of_anarchy"])
             poa_samples = np.asarray(bootstrap_poa)
             poa_lower, poa_upper = np.percentile(poa_samples, [2.5, 97.5])
@@ -191,7 +188,7 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
         sensitivity_results.append({"scenario": f"alpha={test_alpha}", "price_of_anarchy": scenario["price_of_anarchy"]})
     for demand_multiplier in (0.8, 1.2):
         scenario = run_full_analysis(
-            demand * demand_multiplier, ROUTE_INFO, n_drivers, lptrp_profile, alpha=0.7
+            demand * demand_multiplier, ROUTE_INFO, n_drivers, lptrp_profile, alpha=DEFAULT_ALPHA
         )
         sensitivity_results.append({"scenario": f"demand={demand_multiplier}x", "price_of_anarchy": scenario["price_of_anarchy"]})
     for fuel_multiplier in (0.8, 1.2):
@@ -200,7 +197,7 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
             ROUTE_INFO,
             n_drivers,
             lptrp_profile,
-            alpha=0.7,
+            alpha=DEFAULT_ALPHA,
             fuel_cost_multiplier=fuel_multiplier,
         )
         sensitivity_results.append({"scenario": f"fuel_cost={fuel_multiplier}x", "price_of_anarchy": scenario["price_of_anarchy"]})
@@ -239,14 +236,15 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
             "optimum_drivers": int((results["optimum_profile"] == route_idx).sum()),
         }
         for route_idx, route in enumerate(ROUTES)
+        if route_idx in MODEL_ROUTE_INDICES
     ]
     pd.DataFrame(allocation_rows).to_csv(OUT_TABLES / "table3_driver_allocation.csv", index=False)
 
     route_totals = demand.sum(axis=(0, 2))
-    node_totals = demand.sum(axis=(1, 2))
+    node_totals = demand[:, MODEL_ROUTE_INDICES, :].sum(axis=(1, 2))
     if D_samples is not None:
         route_sample_totals = D_samples.sum(axis=(1, 3))
-        node_sample_totals = D_samples.sum(axis=(2, 3))
+        node_sample_totals = D_samples[:, :, MODEL_ROUTE_INDICES, :].sum(axis=(2, 3))
         route_lower, route_upper = np.percentile(route_sample_totals, [2.5, 97.5], axis=0)
         node_lower, node_upper = np.percentile(node_sample_totals, [2.5, 97.5], axis=0)
     else:
@@ -263,14 +261,15 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
             "ci_upper": route_upper[route_idx],
         }
         for route_idx, route in enumerate(ROUTES)
+        if route_idx in MODEL_ROUTE_INDICES
     ]
     pd.DataFrame(demand_rows).to_csv(OUT_TABLES / "table4_demand_by_route.csv", index=False)
     node_rows = [
         {
             "node": node,
-            "am_pax": demand[node_idx, :, 0].sum(),
-            "mid_pax": demand[node_idx, :, 1].sum(),
-            "pm_pax": demand[node_idx, :, 2].sum(),
+            "am_pax": demand[node_idx, MODEL_ROUTE_INDICES, 0].sum(),
+            "mid_pax": demand[node_idx, MODEL_ROUTE_INDICES, 1].sum(),
+            "pm_pax": demand[node_idx, MODEL_ROUTE_INDICES, 2].sum(),
             "total_pax": node_totals[node_idx],
             "ci_lower": node_lower[node_idx],
             "ci_upper": node_upper[node_idx],
@@ -280,13 +279,18 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
     pd.DataFrame(node_rows).to_csv(OUT_TABLES / "table4b_demand_by_node.csv", index=False)
     pd.DataFrame(sensitivity_results).to_csv(OUT_TABLES / "table5_sensitivity_analysis.csv", index=False)
     pd.DataFrame(
-        [{"start": index, **dict(zip(ROUTES, counts))} for index, counts in enumerate(equilibrium_counts, start=1)]
+        [
+            {"start": index, **dict(zip(MODEL_ROUTES, np.asarray(counts)[list(MODEL_ROUTE_INDICES)]))}
+            for index, counts in enumerate(equilibrium_counts, start=1)
+        ]
     ).to_csv(OUT_TABLES / "table6_multistart_equilibria.csv", index=False)
-    compute_gap_analysis(results, ROUTES).to_csv(OUT_TABLES / "table8_lptrp_gap_analysis.csv", index=False)
-    revenue_rows = [{"route": route} for route in ROUTES]
+    compute_gap_analysis(results, ROUTES).query("route != 'EXTERNAL'").to_csv(
+        OUT_TABLES / "table8_lptrp_gap_analysis.csv", index=False
+    )
+    revenue_rows = [{"route": route} for route in MODEL_ROUTES]
     for key in configs:
         revenues = revenue_by_route(results[f"{key}_profile"], demand, ROUTE_INFO)
-        for route_idx, row in enumerate(revenue_rows):
+        for route_idx, row in zip(MODEL_ROUTE_INDICES, revenue_rows):
             row[f"{key}_gross_revenue_php"] = revenues[route_idx]
     pd.DataFrame(revenue_rows).to_csv(OUT_TABLES / "table9_revenue_by_route.csv", index=False)
 
@@ -299,18 +303,12 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
     _save_figure(plot_convergence(convergence_log, OUT_FIGURES / "fig4_convergence.png"))
     _save_figure(plot_bottleneck(bottlenecks, OUT_FIGURES / "fig5_bottleneck.png"))
     _save_figure(plot_sensitivity_poa(sensitivity_results, OUT_FIGURES / "fig6_sensitivity_poa.png"))
-    _save_figure(plot_income_distribution(results, demand, ROUTE_INFO, OUT_FIGURES / "fig7_income_distribution.png"))
-    if poa_samples is not None:
-        _save_figure(plot_poa_bootstrap_ci(poa_samples, results["price_of_anarchy"], OUT_FIGURES / "fig8_poa_bootstrap_ci.png"))
-    _save_figure(plot_gini_comparison(results["ginis"], OUT_FIGURES / "fig9_gini_comparison.png"))
-    _save_figure(plot_wait_time_by_window(demand, results, ROUTE_INFO, OUT_FIGURES / "fig10_wait_time_by_window.png"))
-    _save_figure(plot_demand_by_node(demand, node_lower, node_upper, OUT_FIGURES / "fig11_demand_by_node_bar.png"))
-    _save_figure(plot_multistart_equilibria(equilibrium_counts, OUT_FIGURES / "fig12_multistart_equilibria.png"))
+    # Figures 1–6 are the concise results set corresponding to the research questions.
 
     if not skip_maps:
         print("Step 6 – Generating road-network maps")
         graph = build_road_graph()
-        routes = load_routes(ROOT / "data" / "routes.geojson")
+        routes = load_routes(PATHS.route_geometries)
         _save_figure(plot_map_with_routes(graph, routes, OUT_MAPS / "map1_road_network_routes.png"))
         plot_interactive_folium_map(routes, OUT_MAPS / "map2_pax_flow_folium.html")
 
@@ -326,11 +324,12 @@ def run(bootstrap_samples=200, multistart_runs=10, skip_maps=False):
         poa_lower,
         poa_upper,
     )
-    print(f"Pipeline complete. Outputs written to {ROOT / 'output'}")
+    print(f"Pipeline complete. Outputs written to {PATHS.root / 'output'}")
     return results
 
 
-if __name__ == "__main__":
+def main():
+    """Parse command-line arguments and execute the complete pipeline."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--bootstrap-samples",
@@ -342,3 +341,7 @@ if __name__ == "__main__":
     parser.add_argument("--skip-maps", action="store_true", help="skip map rendering for a faster analysis-only run")
     arguments = parser.parse_args()
     run(arguments.bootstrap_samples, arguments.multistart_runs, arguments.skip_maps)
+
+
+if __name__ == "__main__":
+    main()

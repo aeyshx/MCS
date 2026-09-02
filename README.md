@@ -1,71 +1,92 @@
 # Jeepney Game Theory Model
 
-Game-theoretic evaluation of the Legazpi-Daraga Local Public Transport Route Plan (LPTRP).
-NSTF 2026 · MCS Category · 
+Reproducible game-theoretic evaluation of the Legazpi-Daraga Local Public
+Transport Route Plan (LPTRP). The model estimates a Nash equilibrium, the
+social optimum, and the Price of Anarchy from field-survey boarding counts.
 
-## What it does
+NSTF 2026 · MCS Category
 
-The model treats jeepney drivers as players in a non-cooperative congestion game. It estimates a Nash equilibrium, a social optimum, and the Price of Anarchy, then compares each with the proposed LPTRP allocation.
+## Start here
 
-The complete pipeline also produces bootstrap confidence intervals, fuel-cost and demand sensitivity checks, income-equity measures, multistart equilibrium checks, figures, maps, research tables, and a human-readable summary report.
+Install the project and run the fast, analysis-only workflow:
 
-## Quick start
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+jeepney-game --bootstrap-samples 10 --skip-maps
+```
 
-1. Create and activate a Python 3.11+ virtual environment.
-2. Install dependencies:
+The same command can be run without installation from the repository root:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Run the analysis:
-
-   ```bash
-   python run_pipeline.py
-   ```
-
-The default uses the repository's `data/` directory, which contains the digitized `DATA-*.csv` field-survey files. For a shorter development run, skip maps and use fewer bootstrap samples:
-
-```bash
+```powershell
 python run_pipeline.py --bootstrap-samples 10 --skip-maps
 ```
 
-## Field data input
+Run the quality checks before making a change:
 
-Place raw survey files in a directory and set `GAME_THEORY_RAW_DIR` when the directory is not the repository's `data/` folder:
-
-```bash
-# PowerShell
-$env:GAME_THEORY_RAW_DIR = "C:\path\to\survey-csvs"
-python run_pipeline.py
-```
-
-The parser reads `DATA-*.csv` files in the field-survey layout and writes the normalized dataset to `data/processed/boarding_counts.csv`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the expected format and canonical labels.
-
-To generate a self-contained mock dataset instead, run:
-
-```bash
-python generate_mock_data.py
-python run_pipeline.py
-```
-
-## Outputs
-
-All generated results go to `output/`:
-
-- `output/figures/` — 12 publication-ready PNG figures.
-- `output/maps/` — static road-network map and interactive Folium route map.
-- `output/tables/` — nine CSV result tables, plus demand and validation tables.
-- `output/reports/summary_report.txt` — a concise research summary with the synthetic validation result.
-
-## Verification
-
-Run the automated tests with:
-
-```bash
+```powershell
 pytest
+ruff check .
 ```
+
+## Repository map
+
+```text
+src/                 Model, data preparation, analysis, and visualization code
+tests/               Fast unit tests for model behaviour
+notebooks/           Guided, reproducible exploration and interpretation
+data/raw/            Immutable digitized field-survey CSV files
+data/reference/      LPTRP allocation, route geometry, and reference extracts
+data/processed/      Generated normalized boarding-count dataset (not committed)
+data/mock/           Locally generated demonstration data (not committed)
+output/              Generated tables, figures, maps, and report (not committed)
+docs/                Architecture and data-contract documentation
+dev/                 Short-lived experiments; promote stable work into tests
+```
+
+See [the architecture guide](docs/architecture.md) for module responsibilities
+and [the data dictionary](docs/data_dictionary.md) before changing model inputs.
+
+## Reproducible workflow
+
+1. Keep original digitized surveys in `data/raw/`; do not edit them in place.
+2. Run the pipeline. It parses the surveys into
+   `data/processed/boarding_counts.csv`, then writes all results to `output/`.
+3. Inspect tables and `output/reports/summary_report.txt` before interpreting
+   figures.
+4. Use the notebooks only for exploration and interpretation. Put reusable
+   production logic in `src/` and protect it with tests in `tests/`.
+
+The optional `GAME_THEORY_RAW_DIR` environment variable points the parser to a
+different directory of `DATA-*.csv` files:
+
+```powershell
+$env:GAME_THEORY_RAW_DIR = "C:\path\to\field-surveys"
+jeepney-game --skip-maps
+```
+
+For a safe demo dataset, generate data outside the field-data directory:
+
+```powershell
+python generate_mock_data.py
+$env:GAME_THEORY_RAW_DIR = "data/mock"
+jeepney-game --bootstrap-samples 10 --skip-maps
+```
+
+## Notebooks
+
+Open Jupyter Lab from the repository root:
+
+```powershell
+jupyter lab
+```
+
+- `01_explore_field_data.ipynb` checks source data, normalization, and demand.
+- `02_run_and_interpret_model.ipynb` runs a lightweight model execution and
+  reads the generated research tables.
 
 ## Citation
 
-[Your name]. (2026). *Game-Theoretic Evaluation of the Legazpi-Daraga LPTRP*. NSTF 2026, MCS Category. [School name], Albay, Philippines.
+[Your name]. (2026). *Game-Theoretic Evaluation of the Legazpi-Daraga LPTRP*.
+NSTF 2026, MCS Category. [School name], Albay, Philippines.

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import osmnx as ox
 
-from .demand import ROUTES, NODES
+from .config import MODEL_ROUTE_INDICES, MODEL_ROUTES, NODES, ROUTES
 from .network import nearest_graph_node, route_edges, route_length_km, route_cycle_time_min
 from .payoffs import all_payoffs, passenger_wait_time_by_window
 
@@ -23,16 +23,25 @@ ROUTE_SHORT = {r: r.replace(' ', '\n') for r in ROUTES}
 CONFIG_COLORS = {'nash': '#d7191c', 'lptrp': '#2c7bb6', 'optimum': '#1a9641'}
 HATCH_PATTERNS = {'nash': '///', 'lptrp': '...', 'optimum': ''}
 
+TIME_WINDOW_LABELS = ('AM peak\n(06:00–08:00)', 'Midday\n(11:00–13:00)', 'PM peak\n(16:00–18:00)')
 
-def plot_route_counts(profile, ax=None, title=None):
+
+def _available_model_route_indices(D):
+    """Return in-scope route columns available in a demand tensor."""
+    return tuple(index for index in MODEL_ROUTE_INDICES if index < D.shape[1])
+
+
+def plot_route_counts(profile, ax=None, title=None, route_indices=MODEL_ROUTE_INDICES):
     '''Bar chart: number of drivers per route.'''
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 5))
-    counts = np.bincount(profile, minlength=len(ROUTES))
-    colors = [ROUTE_COLORS.get(r, '#888888') for r in ROUTES]
-    bars = ax.bar(range(len(ROUTES)), counts, color=colors)
-    ax.set_xticks(range(len(ROUTES)))
-    ax.set_xticklabels([ROUTE_SHORT[r] for r in ROUTES], fontsize=7)
+    full_counts = np.bincount(profile, minlength=len(ROUTES))
+    routes = [ROUTES[index] for index in route_indices]
+    counts = full_counts[list(route_indices)]
+    colors = [ROUTE_COLORS.get(route, '#888888') for route in routes]
+    bars = ax.bar(range(len(routes)), counts, color=colors)
+    ax.set_xticks(range(len(routes)))
+    ax.set_xticklabels([ROUTE_SHORT[route] for route in routes], fontsize=8)
     ax.set_ylabel('Number of drivers')
     ax.set_xlabel('Route')
     if title:
@@ -45,13 +54,38 @@ def plot_route_counts(profile, ax=None, title=None):
 
 
 def plot_three_configs(nash, opt, lptrp, save_path=None):
-    '''Side-by-side comparison of the three driver-allocation profiles.'''
-    fig, axes = plt.subplots(1, 3, figsize=(17, 6), sharey=True)
-    plot_route_counts(nash,  ax=axes[0], title='Nash Equilibrium\n(Current Status Quo)')
-    plot_route_counts(lptrp, ax=axes[1], title='Proposed LPTRP\n(Government Plan)')
-    plot_route_counts(opt,   ax=axes[2], title='Social Optimum\n(Mathematical Best)')
-    fig.suptitle('Driver Allocation Comparison Across Three Configurations', fontsize=13, y=1.01)
-    plt.tight_layout()
+    '''Compare allocations on the seven in-scope Legazpi-Daraga routes.'''
+    profiles = {'nash': nash, 'lptrp': lptrp, 'optimum': opt}
+    labels = {'nash': 'Nash equilibrium', 'lptrp': 'Proposed LPTRP', 'optimum': 'Social optimum'}
+    x = np.arange(len(MODEL_ROUTES))
+    width = 0.25
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    for position, key in enumerate(('nash', 'lptrp', 'optimum')):
+        counts = np.bincount(profiles[key], minlength=len(ROUTES))[list(MODEL_ROUTE_INDICES)]
+        bars = ax.bar(
+            x + (position - 1) * width,
+            counts,
+            width,
+            label=labels[key],
+            color=CONFIG_COLORS[key],
+            hatch=HATCH_PATTERNS[key],
+        )
+        ax.bar_label(bars, padding=2, fontsize=8)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([ROUTE_SHORT[route] for route in MODEL_ROUTES], fontsize=9)
+    ax.set_ylabel('Allocated drivers')
+    ax.set_xlabel('Modeled jeepney route')
+    ax.set_title('Driver Allocation by Configuration')
+    ax.set_ylim(0, max(
+        np.bincount(profile, minlength=len(ROUTES))[list(MODEL_ROUTE_INDICES)].max()
+        for profile in profiles.values()
+    ) + 7)
+    ax.legend(ncol=3, frameon=False, loc='upper center', bbox_to_anchor=(0.5, 1.0))
+    ax.grid(axis='y', alpha=0.25)
+    ax.set_axisbelow(True)
+    fig.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=200, bbox_inches='tight')
     return fig
@@ -67,6 +101,7 @@ def plot_convergence(log, save_path=None):
     ax.set_xlabel('Iteration')
     ax.set_ylabel('Drivers who switched route')
     ax.set_title('Best-Response Dynamics: Convergence to Nash Equilibrium')
+    ax.set_xticks(iters)
     ax.grid(True, alpha=0.3)
     if save_path:
         plt.savefig(save_path, dpi=200, bbox_inches='tight')
@@ -78,21 +113,20 @@ def plot_demand_heatmap(D, save_path=None):
     Heatmap of total passenger demand per node per time window,
     summed across all routes.  Shape of D: (nodes, routes, windows).
     '''
-    # Sum over routes to get node × window demand matrix
-    node_window = D.sum(axis=1)  # shape (n_nodes, n_windows)
-    windows = ['AM Peak\n(06:00–08:00)', 'Midday\n(11:00–13:00)', 'PM Peak\n(16:30–18:30)']
+    # Keep out-of-scope intermunicipal boardings out of corridor model results.
+    node_window = D[:, _available_model_route_indices(D), :].sum(axis=1)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     im = ax.imshow(node_window, aspect='auto', cmap='YlOrRd')
     plt.colorbar(im, ax=ax, label='Passengers observed')
-    ax.set_xticks(range(len(windows)))
-    ax.set_xticklabels(windows)
+    ax.set_xticks(range(len(TIME_WINDOW_LABELS)))
+    ax.set_xticklabels(TIME_WINDOW_LABELS)
     ax.set_yticks(range(len(NODES)))
     ax.set_yticklabels(NODES)
-    ax.set_title('Passenger Demand Heatmap by Node and Time Window')
+    ax.set_title('Observed Boarding Demand by Node and Time Window')
     # Annotate cells
     for i in range(len(NODES)):
-        for j in range(len(windows)):
+        for j in range(len(TIME_WINDOW_LABELS)):
             ax.text(j, i, f'{node_window[i, j]:.0f}',
                     ha='center', va='center', fontsize=9,
                     color='black' if node_window[i, j] < node_window.max() * 0.6 else 'white')
@@ -109,7 +143,7 @@ def plot_welfare_comparison(social_costs, wait_times, income_variances, save_pat
     '''
     configs = ['Nash\nEquilibrium', 'Proposed\nLPTRP', 'Social\nOptimum']
     keys    = ['nash', 'lptrp', 'optimum']
-    colors  = ['#d7191c', '#fdae61', '#1a9641']
+    colors  = [CONFIG_COLORS[key] for key in keys]
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 5))
 
@@ -137,8 +171,11 @@ def plot_welfare_comparison(social_costs, wait_times, income_variances, save_pat
                     bar.get_height() + max(vals) * 0.01,
                     f'{v:.3f}', ha='center', va='bottom', fontsize=9)
 
-    fig.suptitle('Welfare Metric Comparison Across Three Configurations', fontsize=13)
-    plt.tight_layout()
+    fig.suptitle('Welfare Comparison Across Configurations', fontsize=13)
+    for ax in axes:
+        ax.grid(axis='y', alpha=0.25)
+        ax.set_axisbelow(True)
+    fig.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=200, bbox_inches='tight')
     return fig
@@ -149,21 +186,27 @@ def plot_bottleneck(bottlenecks, save_path=None):
     Horizontal bar chart of the marginal welfare gain from adding one jeepney
     to each route (positive = undersupplied bottleneck).
     '''
-    sorted_bn = sorted(bottlenecks.items(), key=lambda x: x[1])
-    route_names = [ROUTES[i] if i < len(ROUTES) else str(i) for i, _ in sorted_bn]
+    model_bottlenecks = [
+        (route_index, value) for route_index, value in bottlenecks.items()
+        if route_index in MODEL_ROUTE_INDICES
+    ]
+    sorted_bn = sorted(model_bottlenecks, key=lambda x: x[1])
+    route_names = [ROUTES[i] for i, _ in sorted_bn]
     values = [v for _, v in sorted_bn]
     colors = ['#1a9641' if v > 0 else '#d7191c' for v in values]
 
     fig, ax = plt.subplots(figsize=(9, 5))
     bars = ax.barh(route_names, values, color=colors)
     ax.axvline(0, color='black', linewidth=0.8)
-    ax.set_xlabel('Marginal welfare gain (positive = bottleneck)')
-    ax.set_title('Bottleneck Analysis: Which Routes Need More Jeepneys?')
+    ax.set_xlabel('Marginal welfare gain from one additional jeepney')
+    ax.set_title('Bottleneck Analysis of Modeled Routes')
+    label_offset = max(abs(value) for value in values) * 0.01
     for bar, v in zip(bars, values):
-        ax.text(v + (0.002 if v >= 0 else -0.002),
+        ax.text(v + (label_offset if v >= 0 else -label_offset),
                 bar.get_y() + bar.get_height() / 2,
                 f'{v:+.4f}', va='center',
                 ha='left' if v >= 0 else 'right', fontsize=8)
+    ax.set_xlim(min(0, min(values)) * 1.6, max(0, max(values)) * 1.15)
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=200, bbox_inches='tight')
@@ -180,14 +223,24 @@ def plot_sensitivity_poa(sensitivity_results, save_path=None):
         for label in labels
     ]
     fig, ax = plt.subplots(figsize=(9, 5))
-    bars = ax.bar(np.arange(len(labels)), poas, color=colors, edgecolor='black', linewidth=0.7)
-    for bar, label in zip(bars, labels):
-        bar.set_hatch('///' if label.startswith('alpha') else '...' if label.startswith('demand') else '')
+    x = np.arange(len(labels))
+    markers = ['o' if label.startswith('alpha') else 's' if label.startswith('demand') else '^' for label in labels]
+    for indices in ((0, 1, 2), (3, 4), (5, 6)):
+        valid_indices = [index for index in indices if index < len(poas)]
+        if valid_indices:
+            ax.plot(x[valid_indices], np.asarray(poas)[valid_indices], color='#666666', linewidth=1, zorder=1)
+    for x_value, poa, color, marker in zip(x, poas, colors, markers):
+        ax.scatter(x_value, poa, color=color, marker=marker, s=58, zorder=2)
+        ax.annotate(f'{poa:.3f}', (x_value, poa), xytext=(0, 7), textcoords='offset points', ha='center', fontsize=8)
     ax.axhline(1.0, color='red', linestyle='--', linewidth=1.5, label='PoA = 1 (no loss)')
-    ax.set_xticks(np.arange(len(labels)))
+    padding = max(0.01, (max(poas) - min(poas)) * 0.25)
+    ax.set_ylim(1.0 - padding, max(poas) + padding)
+    ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha='right')
     ax.set_ylabel('Price of Anarchy')
-    ax.set_title('Sensitivity Analysis: PoA Across Scenarios')
+    ax.set_title('Price of Anarchy Across Sensitivity Scenarios')
+    ax.grid(axis='y', alpha=0.25)
+    ax.set_axisbelow(True)
     ax.legend()
     plt.tight_layout()
     if save_path:
@@ -257,7 +310,6 @@ def plot_gini_comparison(ginis, save_path=None):
 
 def plot_wait_time_by_window(D, results, route_info, save_path=None):
     """Compare passenger-minutes of waiting by observation window."""
-    windows = ['AM\n(06:00–08:00)', 'MID\n(11:00–13:00)', 'PM\n(16:30–18:30)']
     configs = [('nash', 'Nash'), ('lptrp', 'LPTRP'), ('optimum', 'Optimum')]
     x = np.arange(D.shape[2])
     width = 0.25
@@ -268,7 +320,7 @@ def plot_wait_time_by_window(D, results, route_info, save_path=None):
         for bar in bars:
             bar.set_hatch(HATCH_PATTERNS[key])
     ax.set_xticks(x + width)
-    ax.set_xticklabels(windows[:D.shape[2]])
+    ax.set_xticklabels(TIME_WINDOW_LABELS[:D.shape[2]])
     ax.set_ylabel('Total passenger wait time (minutes)')
     ax.set_title('Wait Times by Time Window and Configuration')
     ax.legend()
@@ -280,7 +332,7 @@ def plot_wait_time_by_window(D, results, route_info, save_path=None):
 
 def plot_demand_by_node(D, node_lower=None, node_upper=None, save_path=None):
     """Plot demand totals by survey node, optionally with bootstrap intervals."""
-    totals = D.sum(axis=(1, 2))
+    totals = D[:, _available_model_route_indices(D), :].sum(axis=(1, 2))
     lower = totals if node_lower is None else np.asarray(node_lower)
     upper = totals if node_upper is None else np.asarray(node_upper)
     errors = np.vstack([np.maximum(0, totals - lower), np.maximum(0, upper - totals)])
@@ -289,7 +341,7 @@ def plot_demand_by_node(D, node_lower=None, node_upper=None, save_path=None):
     for bar in bars:
         bar.set_hatch('///')
     ax.set_ylabel('Passengers per observed window')
-    ax.set_title('Observed Boarding Demand by Survey Node')
+    ax.set_title('Observed Boarding Demand by Survey Node (Modeled Routes)')
     ax.tick_params(axis='x', rotation=20)
     plt.tight_layout()
     if save_path:
@@ -302,17 +354,19 @@ def plot_multistart_equilibria(equilibrium_counts, save_path=None):
     counts = np.asarray(equilibrium_counts, dtype=float)
     if counts.ndim != 2:
         raise ValueError('equilibrium_counts must be a two-dimensional route-count array')
+    displayed_counts = counts[:, list(MODEL_ROUTE_INDICES)] if counts.shape[1] == len(ROUTES) else counts
+    displayed_routes = MODEL_ROUTES if counts.shape[1] == len(ROUTES) else ROUTES[:counts.shape[1]]
     fig, ax = plt.subplots(figsize=(10, 5))
-    image = ax.imshow(counts, aspect='auto', cmap='Blues')
+    image = ax.imshow(displayed_counts, aspect='auto', cmap='Blues')
     fig.colorbar(image, ax=ax, label='Drivers assigned')
-    ax.set_xticks(np.arange(counts.shape[1]))
-    ax.set_xticklabels([ROUTE_SHORT[route] for route in ROUTES[:counts.shape[1]]], fontsize=8)
+    ax.set_xticks(np.arange(displayed_counts.shape[1]))
+    ax.set_xticklabels([ROUTE_SHORT[route] for route in displayed_routes], fontsize=8)
     ax.set_yticks(np.arange(counts.shape[0]))
     ax.set_yticklabels([f'Start {idx + 1}' for idx in range(counts.shape[0])])
     ax.set_title('Nash Equilibrium Route Counts Across Random Initializations')
-    for row in range(counts.shape[0]):
-        for column in range(counts.shape[1]):
-            ax.text(column, row, f'{counts[row, column]:.0f}', ha='center', va='center', fontsize=8)
+    for row in range(displayed_counts.shape[0]):
+        for column in range(displayed_counts.shape[1]):
+            ax.text(column, row, f'{displayed_counts[row, column]:.0f}', ha='center', va='center', fontsize=8)
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=200, bbox_inches='tight')

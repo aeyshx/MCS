@@ -3,6 +3,7 @@ import warnings
 import osmnx as ox
 import networkx as nx
 import geopandas as gpd
+from .paths import ProjectPaths
 
 # Suppress deprecation warning for north/south/east/west kwargs in OSMnx 1.9.x
 warnings.filterwarnings(
@@ -15,7 +16,7 @@ warnings.filterwarnings(
 NORTH, SOUTH = 13.20, 13.09
 EAST, WEST = 123.78, 123.68
 
-CACHE_GRAPH_PATH = os.path.join("cache", "legazpi_daraga_graph.graphml")
+CACHE_GRAPH_PATH = ProjectPaths.discover().cache / "legazpi_daraga_graph.graphml"
 
 from .demand import ROUTES  # single source of truth for route identifiers
 
@@ -56,9 +57,9 @@ def build_road_graph(use_cache=True):
 
     return G
 
-def load_routes(geojson_path='data/routes.geojson'):
+def load_routes(geojson_path=None):
     '''Load route geometries as GeoDataFrame.'''
-    return gpd.read_file(geojson_path, engine="pyogrio")
+    return gpd.read_file(geojson_path or ProjectPaths.discover().route_geometries, engine="pyogrio")
 
 def route_edges(G, route_geom):
     '''Map a route geometry to a sequence of edges in the road graph.'''

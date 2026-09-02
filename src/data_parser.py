@@ -22,29 +22,8 @@ import glob
 import os
 import re
 
-# ---------------------------------------------------------------------------
-# Canonical identifiers used by the model
-# ---------------------------------------------------------------------------
-NODES = [
-    'ROTUNDA',          # index 0 - Ayala / Rotunda
-    'PACIFIC MALL',     # index 1
-    'DARAGA MARKET',    # index 2
-    'EMBARCADERO',      # index 3
-    'SM',               # index 4
-]
-
-ROUTES = [
-    'DIRETSO A',        # index 0  (LPTRP route 11, via Lapu-Lapu St)
-    'DIRETSO B',        # index 1  (LPTRP route 12, via Capitol)
-    'RAWIS A',          # index 2  (LPTRP route 13)
-    'RAWIS B',          # index 3  (LPTRP route 14)
-    'ARIMBAY',          # index 4  (LPTRP route 15, via Tahao Rd)
-    'LOOP 1',           # index 5  (LPTRP route 16-1)
-    'LOOP 2',           # index 6  (LPTRP route 16-2)
-    'EXTERNAL',         # index 7  (Camalig, Guinobatan, Ligao, etc.)
-]
-
-WINDOWS = ['AM', 'MID', 'PM']
+from .config import NODES, ROUTES, WINDOWS
+from .paths import ProjectPaths
 
 # ---------------------------------------------------------------------------
 # Normalization tables
@@ -65,6 +44,7 @@ _NODE_MAP = {
 }
 
 _ROUTE_MAP = {
+    'EXTERNAL': 'EXTERNAL',
     'DIRETSO': 'DIRETSO A',
     'DITETSO': 'DIRETSO A',       # known typo in raw data
     'DIRETSO A': 'DIRETSO A',
@@ -278,7 +258,7 @@ def build_boarding_counts(
     boarding_counts.csv to out_path (compatible with src/demand.py).
     """
     if raw_dir is None:
-        raw_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        raw_dir = ProjectPaths.discover().raw_data
     pattern = os.path.join(str(raw_dir), 'DATA-*.csv')
     files = sorted(glob.glob(pattern))
 
