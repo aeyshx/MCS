@@ -40,6 +40,8 @@ def _route_financials(D, route_info, fuel_cost_multiplier=1.0, operating_hours=1
         if cycle_min <= 0:
             raise ValueError(f"Route {route_idx} has a non-positive cycle time")
 
+        # Passengers on average ride half the route length (boarding at midpoint
+        # of a one-way trip or riding one direction of a return service).
         fare_per_pax = compute_fare(length_km / 2.0, discount_ratio=0.20)
         loops_per_window = 120 / cycle_min
         route_demand = (

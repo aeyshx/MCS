@@ -125,7 +125,13 @@ def _normalize_window(raw):
 
 
 def _parse_date(raw):
-    """Return ISO date string (YYYY-MM-DD) or None."""
+    """Return ISO date string (YYYY-MM-DD) or None.
+
+    Assumes the raw string uses the "Month DD, YYYY" format that appears in
+    the field survey CSVs.  The first extracted digit group is treated as the
+    day and the last as the year.  ISO 8601 strings (YYYY-MM-DD) would be
+    parsed incorrectly and should not be present in raw survey data.
+    """
     raw = raw.strip()
     for month_name, month_num in _MONTH_MAP.items():
         if month_name in raw.lower():

@@ -5,9 +5,9 @@ from .demand import ROUTES
 def best_response(
     driver_idx, profile, D, route_info, n_routes=None, fuel_cost_multiplier=1.0
 ):
+    '''Find the route that maximizes this driver's payoff, others fixed.'''
     if n_routes is None:
         n_routes = len(ROUTES)
-    '''Find the route that maximizes this driver's payoff, others fixed.'''
     best_route = profile[driver_idx]
     best_pi = driver_payoff(
         driver_idx, profile, D, route_info, fuel_cost_multiplier=fuel_cost_multiplier
@@ -30,12 +30,12 @@ def find_equilibrium(
     initial_profile, D, route_info,
     n_routes=None, max_iters=200, seed=42, verbose=False, fuel_cost_multiplier=1.0
 ):
-    if n_routes is None:
-        n_routes = len(ROUTES)
     '''
     Run best-response dynamics until convergence.
     Returns final profile and iteration log.
     '''
+    if n_routes is None:
+        n_routes = len(ROUTES)
     rng = np.random.default_rng(seed)
     profile = initial_profile.copy()
     n = len(profile)
