@@ -4,7 +4,6 @@ Reproducible game-theoretic evaluation of the Legazpi-Daraga Local Public
 Transport Route Plan (LPTRP). The model estimates a Nash equilibrium, the
 social optimum, and the Price of Anarchy from field-survey boarding counts.
 
-NSTF 2026 · MCS Category
 
 ## Start here
 
@@ -90,5 +89,4 @@ jupyter lab
 
 ## Citation
 
-[Your name]. (2026). *Game-Theoretic Evaluation of the Legazpi-Daraga LPTRP*.
-NSTF 2026, MCS Category. [School name], Albay, Philippines.
+[PLACEHOLDER]
